@@ -1,0 +1,169 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+    okta log collector
+
+# More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
+Globals:
+    Function:
+        Timeout: !Ref FunctionTimeoutInSeconds
+Parameters:
+  LMCompanyName:
+    Type: String
+    Default: ""
+    Description: The LogicMonitor account name.
+  LMAccessId:
+    Type: String
+    NoEcho: true
+    Default: ""
+    Description: The LM API tokens access ID
+  LMAccessKey:
+    Type: String
+    NoEcho: true
+    Default: ""
+    Description: The LM API tokens access key
+  OktaDomain:
+    Type: String
+    Default: ""
+    Description: okta domain eg "company.okta.com".
+  OktaAPIKey:
+    Type: String
+    NoEcho: true
+    Default: ""
+    Description: Okta API key to fetch logs from okta.
+  LMResourceId:
+    Type: String
+    Default: ""
+    Description: "Ignored when LMLogsServiceName is specified. Is a json for resource mapping. if specified as {\"system.hostname\" : \"prod-node-us-west-1\"} all logs will be mapped against the device with property system.hostname = prod-node-us-west-1"
+  LMLogsServiceName:
+    Type: String
+    Default: "okta-system-logs"
+    Description: This will be used for anomaly detection.
+  FunctionName:
+    Type: String
+    Default: LM-Okta-Log-Collector
+    Description: The name for lambda function.
+  IncludeMetadataKeys:
+    Type: String
+    Default: 'severity,actor.displayname,actor.type,actor.alternateId,client.geographicalContext.city,displayMessage,eventType'
+    Description: comma separated keys to add as event metadata in a lm-log event. for nested json specify '.' eg - actor.displayname,actor.type
+  MaxBackFillDurationMinutes:
+    Type: Number
+    Default: 30
+    MinValue: 1
+    MaxValue: 10000
+    Description: On the first invocation of this function, this much 'minutes' old logs will be polled.
+  FunctionMemorySize:
+    Type: Number
+    Default: 256
+    MinValue: 128
+    MaxValue: 2048
+    Description:  The memory size for the OKTA Log Collector lambda function in MBs
+  FunctionTimeoutInSeconds:
+    Type: Number
+    Default: 240
+    Description: The timeout for the OKTA Log Collector lambda function in Seconds
+  ScheduleExpression:
+    Type: String
+    Default: "rate(2 minutes)"
+    Description: Cron expression for this lambda function. "rate(2 minutes)" means, function will be triggered every 2 minutes. see https://docs.aws.amazon.com/AmazonCloudWatch/latest/events/ScheduledEvents.html for more details.
+
+
+Resources:
+
+    LRTBucket:
+        Type: AWS::S3::Bucket
+
+
+    oktaLogCollector :
+        Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+        Properties:
+            CodeUri: ./src
+              #Bucket: okta-log-collector-src
+              #Key: oktaLogCollector.zip
+            Handler: oktalogcollector.collector.lambda_handler
+            Runtime: python3.9
+            MemorySize: !Ref FunctionMemorySize
+            Policies:
+                - S3CrudPolicy:
+                      BucketName: !Ref LRTBucket
+                - Version: "2012-10-17"
+                  Statement:
+                    - Effect: Allow
+                      Action:
+                        - secretsmanager:GetSecretValue
+                        - secretsmanager:DescribeSecret
+                      Resource:
+                        - Ref: AccessKeySecret
+                        - Ref: AccessIdSecret
+                        - Ref: OktaAPIKeySecret
+            Environment: # More info about Env Vars: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#environment-object
+                Variables:
+                  # last report time persistence config
+                    LRT_S3_BUCKET : !Ref LRTBucket
+                    MAX_BACK_FILL_DURATION_MIN : !Ref MaxBackFillDurationMinutes
+
+                  # config for okta log collection.
+                    OKTA_DOMAIN : !Ref OktaDomain
+                    OKTA_API_KEY : !Ref OktaAPIKeySecret
+
+                  # config for log-ingestion
+                    COMPANY_NAME : !Ref LMCompanyName
+                    LM_ACCESS_ID : !Ref AccessIdSecret
+                    LM_ACCESS_KEY : !Ref AccessKeySecret
+                    LM_KEY_SERVICE : !Ref LMLogsServiceName
+                    LM_RESOURCE_ID : !Ref LMResourceId
+                    INCLUDE_METADATA_KEYS : !Ref IncludeMetadataKeys
+                    LM_SERVICE_NAME_KEY : !Ref LMLogsServiceName
+
+            Events:
+                oktaLogCollectionScheduleEvent:
+                    Type: Schedule
+                    Properties:
+                        Schedule: !Ref ScheduleExpression
+                        Enabled: True
+
+
+    AccessKeySecret:
+      Type: AWS::SecretsManager::Secret
+      Properties:
+        Description: Logic Monitor Access Key
+        SecretString:
+          Ref: LMAccessKey
+    AccessIdSecret:
+      Type: AWS::SecretsManager::Secret
+      Properties:
+        Description: Logic Monitor Access Id
+        SecretString:
+          Ref: LMAccessId
+    OktaAPIKeySecret:
+      Type: AWS::SecretsManager::Secret
+      Properties:
+        Description: Okta API key to fetch logs
+        SecretString:
+          Ref: OktaAPIKey
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+      - Label:
+          default: Required
+        Parameters:
+          - FunctionName
+          - LMCompanyName
+          - LMAccessId
+          - LMAccessKey
+          - OktaDomain
+          - OktaAPIKey
+      - Label:
+          default: LM Logs (Optional)
+        Parameters:
+          - LMLogsServiceName
+          - LMResourceId
+          - IncludeMetadataKeys
+          - MaxBackFillDurationMinutes
+      - Label:
+          default: Lambda Function (Optional)
+        Parameters:
+          - ScheduleExpression
+          - FunctionMemorySize
+          - FunctionTimeoutInSeconds
