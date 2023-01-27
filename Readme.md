@@ -11,12 +11,12 @@
 
 ## Deploying as AWS lambda function
 
-Build SAM locally
+Build SAM locally :
 ```bash
 > sam build -m requirements.txt
 ```
 
-Deploy SAM
+Deploy SAM :
 ```bash
 > sam deploy --guided
 ```
