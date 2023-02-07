@@ -6,7 +6,7 @@ logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
 
-def get_required_attr_from_env(key):
+def     get_required_attr_from_env(key):
     if val := get_attr_from_env(key):
         return val
     else:

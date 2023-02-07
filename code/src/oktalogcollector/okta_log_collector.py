@@ -17,6 +17,7 @@ OKTA_EVENT_KEYWORD = "OKTA_EVENT_KEYWORD"
 OKTA_NEXT_LINK = "okta_next_link"
 RETRIES = "next_link_retries"
 MAX_RETRIES = 3
+BACK_FILL_DURATION_MINUTES = 2
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -26,9 +27,8 @@ class OktaLogCollector:
     def __init__(self):
         self.domain = hp.get_required_attr_from_env(const.OKTA_DOMAIN)
         self.api_key = aws.get_secret_val(hp.get_required_attr_from_env(const.OKTA_API_KEY))
-        logger.info("okta " + str(self.api_key))
         self.log_ingester = LogIngester()
-        self.back_fill_dur_min = int(hp.get_required_attr_from_env(const.MAX_BACK_FILL_DURATION_MIN))
+        self.back_fill_dur_min = BACK_FILL_DURATION_MINUTES
         self.retry_attempt = 0
 
     def get_domain(self):
@@ -95,7 +95,12 @@ class OktaLogCollector:
             while response.links["next"]["url"]:
                 next_url = response.links["next"]["url"]
                 url_to_persist = next_url
-                logger.info("next url : %s ", next_url)
+                # persist url to s3 as soon as ingestion is successful
+                logger.info("Updating next url to s3 after last successful ingestion : %s ", next_url)
+                self.update_next_url_to_query(url_to_persist, 0)
+
+                url_for_fetching = url_to_persist
+                self.retry_attempt = 0
                 response = requests.request("GET", response.links["next"]["url"], headers=headers)
                 response.raise_for_status()
                 if len(response.json()) < 1:
@@ -113,7 +118,7 @@ class OktaLogCollector:
             if url_to_persist == url_for_fetching:
                 logger.error("Exception encountered. incrementing retry attempt. Error = %s", str(e))
                 self.retry_attempt += 1
-            raise Exception('Error occurred during execution')
+            # raise Exception('Error occurred during execution')
         finally:
             if url_to_persist == url_for_fetching:
                 if self.retry_attempt > 0:
