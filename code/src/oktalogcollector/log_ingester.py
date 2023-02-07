@@ -1,16 +1,18 @@
-import requests
-import json
-import hashlib
 import base64
-import time
-import hmac
 import gzip
+import hashlib
+import hmac
+import json
+import logging
+import operator
+import time
+from functools import reduce
+
+import requests
+
 from . import aws
 from . import constants as const
 from . import helper as hp
-from functools import reduce
-import operator
-import logging
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -49,16 +51,31 @@ class LogIngester:
         logger.info("number of logs in response = %s", str(len(raw_json_resp)))
         payload = []
         for event in raw_json_resp:
-            lm_log_event = self.prepare_lm_log_event(event)
-            if len((json.dumps(payload) + json.dumps(lm_log_event)).encode(const.ENCODING)) \
-                    < const.MAX_ALLOWED_PAYLOAD_SIZE:
-                payload.append(lm_log_event)
-            else:
-                self.report_logs(payload)
-                logging.debug("resetting payload to empty")
-                payload = []
-        logger.info("payload size =" + str(len(json.dumps(payload).encode(const.ENCODING))))
-        self.report_logs(payload)
+            payload.append(self.prepare_lm_log_event(event))
+            # lm_log_event = self.prepare_lm_log_event(event)
+            # if len((json.dumps(payload) + json.dumps(lm_log_event)).encode(const.ENCODING)) \
+            #         < const.MAX_ALLOWED_PAYLOAD_SIZE:
+            #     payload.append(lm_log_event)
+            # else:
+            #     self.report_logs(payload)
+            #     logging.debug("resetting payload to empty")
+            #     payload = []
+        self.report_logs_in_chunks(payload)
+
+    def report_logs_in_chunks(self, payload):
+        payload_size = len(json.dumps(payload).encode(const.ENCODING))
+        if payload_size < const.MAX_ALLOWED_PAYLOAD_SIZE and len(payload) > 0:
+            # ingest as it is
+            logger.info("payload size while ingestion =" + str(payload_size))
+            self.report_logs(payload)
+        else:
+            # this is an extremely rare scenario where size of 1000 logs is larger than 8 mbs
+            # generally size of 1000 logs is around 3 MBs
+            # but if the ever occurs, split data equally and report logs
+            logger.info("splitting payload due to payload size limit exceeded.")
+            split_len = len(payload) // 2
+            self.report_logs_in_chunks(payload[:split_len])
+            self.report_logs_in_chunks(payload[split_len:])
 
     def prepare_lm_log_event(self, event):
         lm_log_event = {"message": json.dumps(event), "timestamp": event[const.OKTA_KEY_TIMESTAMP],
