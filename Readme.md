@@ -19,7 +19,7 @@
 
 Build SAM locally
 ```bash
-> sam build -m requirements.txt
+> sam build -m requirements.txt --use-container
 ```
 
 Deploy SAM
