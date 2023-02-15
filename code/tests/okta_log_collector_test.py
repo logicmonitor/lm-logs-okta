@@ -1,23 +1,18 @@
 import gzip
-import zlib
-from http.server import HTTPServer
-from io import StringIO, BytesIO
-from urllib.parse import parse_qsl
-
 import pytest
 import json
 import requests
-import requests_mock
-import os
-from unittest.mock import MagicMock
-
+import logging
 
 from oktalogcollector import log_ingester as li
+from oktalogcollector import msgspec_okta_event as moe
 
+logger = logging.getLogger()
+logger.setLevel(logging.INFO)
 
 def test_persist_url_on_successful_ingestion(mock_log_ingester):
     log_ingester = li.LogIngester()
-    okta_event = json.load(open("tests/data/sample_okta_event.json"))
+    okta_event = moe.load_single_event(open("tests/data/sample_okta_event.json").read())
     prepared_event = log_ingester.prepare_lm_log_event(okta_event)
     expected_event = json.load(open("tests/data/expected_lm_log_event.json"))
     assert expected_event == prepared_event, "Should build lm-log event"
@@ -30,6 +25,7 @@ def mock_log_ingest_post(
     def matcher(req):
         if req.url != "https://mycompany.logicmonitor.com/rest/log/ingest":
             return None
+        logger.info("lmv1 token = {0}".format(req.headers.get("Authorization")))
         if json.load(open("tests/data/expected_lm_logs_payload_data.json")) == \
                 json.loads(gzip.decompress(req.body).decode('utf-8')) \
                 and req.headers.get("Authorization") == \
