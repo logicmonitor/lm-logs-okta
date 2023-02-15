@@ -9,30 +9,25 @@ Globals:
 Parameters:
   LMCompanyName:
     Type: String
-    Default: ""
-    Description: The LogicMonitor account name.
+    Description: The LogicMonitor account name. If your domain is mycompany.logicmonitor.com, then it is mycompany
   LMAccessId:
     Type: String
     NoEcho: true
-    Default: ""
     Description: The LM API tokens access ID
   LMAccessKey:
     Type: String
     NoEcho: true
-    Default: ""
     Description: The LM API tokens access key
   OktaDomain:
     Type: String
-    Default: ""
+    AllowedPattern: ^(?!-)[A-Za-z0-9-]+([\-\.]{1}[a-z0-9]+)*\.[A-Za-z]{2,6}
     Description: okta domain eg "company.okta.com".
   OktaAPIKey:
     Type: String
     NoEcho: true
-    Default: ""
     Description: Okta API key to fetch logs from okta.
   LMResourceId:
     Type: String
-    Default: ""
     Description: "Ignored when LMLogsServiceName is specified. Is a json for resource mapping. if specified as {\"system.hostname\" : \"prod-node-us-west-1\"} all logs will be mapped against the device with property system.hostname = prod-node-us-west-1"
   LMLogsServiceName:
     Type: String
@@ -44,28 +39,23 @@ Parameters:
     Description: The name for lambda function.
   IncludeMetadataKeys:
     Type: String
-    Default: 'severity,actor.displayname,actor.type,actor.alternateId,client.geographicalContext.city,displayMessage,eventType'
+    Default: 'severity,actor.displayName,actor.type,actor.alternateId,client.geographicalContext.city,displayMessage,eventType,target'
     Description: comma separated keys to add as event metadata in a lm-log event. for nested json specify '.' eg - actor.displayname,actor.type
-  MaxBackFillDurationMinutes:
-    Type: Number
-    Default: 30
-    MinValue: 1
-    MaxValue: 10000
-    Description: On the first invocation of this function, this much 'minutes' old logs will be polled.
   FunctionMemorySize:
     Type: Number
-    Default: 256
+    Default: 2048
     MinValue: 128
-    MaxValue: 2048
-    Description:  The memory size for the OKTA Log Collector lambda function in MBs
+    MaxValue: 4096
+    Description:  The memory size for the OKTA Log Collector lambda function in MBs. CPU power assigned is proportional to the memory size. See https://docs.aws.amazon.com/lambda/latest/operatorguide/computing-power.html
   FunctionTimeoutInSeconds:
     Type: Number
-    Default: 240
+    Default: 110
+    MinValue: 20
     Description: The timeout for the OKTA Log Collector lambda function in Seconds
   ScheduleExpression:
     Type: String
     Default: "rate(2 minutes)"
-    Description: Cron expression for this lambda function. "rate(2 minutes)" means, function will be triggered every 2 minutes. see https://docs.aws.amazon.com/AmazonCloudWatch/latest/events/ScheduledEvents.html for more details.
+    Description: Cron expression for this lambda function. "rate(2 minutes)" means, function will be triggered every 2 minutes. See https://docs.aws.amazon.com/AmazonCloudWatch/latest/events/ScheduledEvents.html for more details.
 
 
 Resources:
@@ -100,7 +90,6 @@ Resources:
                 Variables:
                   # last report time persistence config
                     LRT_S3_BUCKET : !Ref LRTBucket
-                    MAX_BACK_FILL_DURATION_MIN : !Ref MaxBackFillDurationMinutes
 
                   # config for okta log collection.
                     OKTA_DOMAIN : !Ref OktaDomain
@@ -159,7 +148,6 @@ Metadata:
           - LMLogsServiceName
           - LMResourceId
           - IncludeMetadataKeys
-          - MaxBackFillDurationMinutes
       - Label:
           default: Lambda Function (Optional)
         Parameters:

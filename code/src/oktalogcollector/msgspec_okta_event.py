@@ -1,17 +1,8 @@
 from __future__ import annotations
 
 import functools
-import operator
-from typing import List, Optional
-import logging
+from typing import Optional
 import msgspec
-
-logger = logging.getLogger()
-logging.basicConfig(level=logging.INFO)
-
-logger.info("Info")
-logger.error("error")
-logger.info("info")
 
 
 class Actor(msgspec.Struct):
@@ -133,7 +124,6 @@ class OktaEvents(msgspec.Struct):
 loads = msgspec.json.Decoder(list[OktaEvent]).decode
 load_single_event = msgspec.json.Decoder(OktaEvent).decode
 dumps = msgspec.json.Encoder().encode
-
 
 
 def r_getattr(obj, attr, *args):
