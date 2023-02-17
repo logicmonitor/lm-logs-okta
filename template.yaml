@@ -6,6 +6,10 @@ Description: LM Okta log collector
 Globals:
     Function:
         Timeout: !Ref FunctionTimeoutInSeconds
+Mappings:
+  Constants:
+    LMOktaLogCollector:
+      Version: 0.0.1-beta
 Parameters:
   LMCompanyName:
     Type: String
@@ -66,10 +70,13 @@ Resources:
 
     oktaLogCollector :
         Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+        DependsOn: OktaLogCollectorZip
         Properties:
             FunctionName:
               Ref: FunctionName
-            CodeUri: ./src
+            CodeUri:
+              Bucket: !Ref OktaLogCollectorZipsBucket
+              Key: main.zip
             Handler: oktalogcollector.collector.lambda_handler
             Runtime: python3.9
             MemorySize: !Ref FunctionMemorySize
@@ -121,6 +128,119 @@ Resources:
         FunctionName: !Ref oktaLogCollector
         MaximumRetryAttempts: 0 # Back-filling will be performed in next lamda invocation in case of lambda timeouts
         Qualifier: !GetAtt version.Version
+
+    OktaLogCollectorZipsBucket:
+      Type: AWS::S3::Bucket
+      Properties:
+        BucketEncryption:
+          ServerSideEncryptionConfiguration:
+            - ServerSideEncryptionByDefault:
+                SSEAlgorithm: AES256
+        PublicAccessBlockConfiguration:
+          BlockPublicAcls: true
+          BlockPublicPolicy: true
+          IgnorePublicAcls: true
+          RestrictPublicBuckets: true
+    OktaLogCollectorZip:
+      Type: Custom::OktaLogCollectorZip
+      Properties:
+        ServiceToken: !GetAtt "OktaLogCollectorZipCopier.Arn"
+        DestZipsBucket: !Ref "OktaLogCollectorZipsBucket"
+        SourceZipUrl:
+          Fn::Sub:
+            - "https://okta-log-collector-src.s3.amazonaws.com/0.0.1-beta/481fd5ef6fef427a22fa016aeb4b165c"
+            - {
+              LMOktaLogCollectorVersion:
+                !FindInMap [ Constants, LMOktaLogCollector, Version ],
+            }
+
+
+    OktaLogCollectorZipCopier:
+      Type: AWS::Serverless::Function
+      Properties:
+        Description: Copies Logic Monitor okta-log-collector zip to the destination S3 bucket
+        Handler: index.handler
+        Runtime: python3.9
+        Timeout: 300
+        InlineCode: |
+          import json
+          import logging
+          import threading
+          import boto3
+          import urllib.request
+          import os
+
+          logger = logging.getLogger()
+          logger.setLevel(logging.INFO)
+
+          def send_cfn_resp(event, context, response_status):
+              resp_body = json.dumps({
+                  'Status': response_status,
+                  'Reason': f'See reasons in CloudWatch Logs - group: {context.log_group_name}, stream:{context.log_stream_name}',
+                  'PhysicalResourceId': context.log_stream_name,
+                  'StackId': event['StackId'],
+                  'RequestId': event['RequestId'],
+                  'LogicalResourceId': event['LogicalResourceId'],
+                  'Data': {}
+              }).encode('utf-8')
+              req = urllib.request.Request(url=event['ResponseURL'], data=resp_body, method='PUT')
+              with urllib.request.urlopen(req) as f:
+                  logger.info(f'Sent response to CloudFormation: {f.status}, {f.reason}')
+          def delete_zips(bucket):
+              s3 = boto3.resource('s3')
+              bucket = s3.Bucket(bucket)
+              bucket.objects.all().delete()
+          def copy_zip(source_zip_url, dest_zips_bucket):
+              s3 = boto3.client('s3')
+              filename = "main.zip"
+              with urllib.request.urlopen(source_zip_url) as data:
+                  s3.upload_fileobj(data, dest_zips_bucket, filename)
+          def timeout(event, context):
+              logger.error('Execution is about to time out, sending failure response to CloudFormation')
+              send_cfn_resp(event, context, 'FAILED')
+          def handler(event, context):
+              timer = threading.Timer((context.get_remaining_time_in_millis()
+                          / 1000.00) - 0.5, timeout, args=[event, context])
+              timer.start()
+              logger.info(f'Received event: {json.dumps(event)}')
+              try:
+                  source_zip_url = event['ResourceProperties']['SourceZipUrl']
+                  dest_zips_bucket = event['ResourceProperties']['DestZipsBucket']
+                  if event['RequestType'] == 'Delete':
+                      logger.info(f'Deleting : {dest_zips_bucket}')
+                      delete_zips(dest_zips_bucket)
+                  else:
+                      logger.info(f'Copying zip from : {source_zip_url} to {dest_zips_bucket}')
+                      copy_zip(source_zip_url, dest_zips_bucket)
+              except Exception as e:
+                  logger.exception(f'Exception when copying zip from {source_zip_url} to {dest_zips_bucket}')
+                  send_cfn_resp(event, context, 'FAILED')
+              else:
+                  send_cfn_resp(event, context, 'SUCCESS')
+              finally:
+                  timer.cancel()
+
+        Policies:
+          - Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - s3:PutObject
+                  - s3:DeleteObject
+                Resource:
+                  - Fn::Join:
+                      - "/"
+                      - - Fn::GetAtt: "OktaLogCollectorZipsBucket.Arn"
+                        - "*"
+              - Effect: Allow
+                Action:
+                  - s3:ListBucket
+                Resource:
+                  - Fn::GetAtt: "OktaLogCollectorZipsBucket.Arn"
+        Environment:
+          Variables:
+            LM_OKTA_LOG_COLLECTOR_VERSION: !FindInMap [ Constants, LMOktaLogCollector, Version ]
+
 
     AccessKeySecret:
       Type: AWS::SecretsManager::Secret
