@@ -1,6 +1,6 @@
 FROM amazon/aws-lambda-python:3.9
 COPY ./code/ /code/
-COPY ./template.yaml /
+COPY ./template.yaml /code/
 WORKDIR /code
 
 RUN pip install --upgrade awscli aws-sam-cli tox setuptools
