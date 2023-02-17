@@ -33,8 +33,8 @@ def mock_log_ingest_post(
         if json.load(open("tests/data/expected_lm_logs_payload_data.json")) == \
                 json.loads(gzip.decompress(req.body).decode('utf-8')) \
                 and req.headers.get("Authorization") == \
-                "LMv1 some-string:MmM4MTk3YzQ0NmQ1M2FkZDBkNjBjZmJlZWYwZmQzZj" \
-                "ZlMTY5NDgzNjU1NmUzZjU3OTYzMGIzNjAwMWY5NjdlMA==:123456789000":
+                "LMv1 some-string:ZjU3NDkyZmZmZTQzOTgzMzVmOWZjMzNiOTQ4O" \
+                "GI0YWQ1YzdiZTIwNGMyOGE5NTQ0ZjZjZDUwYzY1NzE0N2RmZQ==:123456789000":
             return create_successful_ingestion_response()
     requests_mock._adapter.add_matcher(matcher)
     yield
