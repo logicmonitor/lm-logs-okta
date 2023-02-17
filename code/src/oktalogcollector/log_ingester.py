@@ -13,6 +13,7 @@ import requests
 from . import aws
 from . import constants as const
 from . import helper as hp
+from .msgspec_okta_event import dumps, r_getattr
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -32,10 +33,11 @@ class LogIngester:
 
     def set_metadata_deep_path(self):
         try:
-            metadata_deep_path = []
+            # metadata_deep_path = []
             include_metadata_keys = hp.get_attr_from_env(const.INCLUDE_METADATA_KEYS).replace(' ', '')  # remove spaces
-            for k in include_metadata_keys.split(','):
-                metadata_deep_path.append(k.split('.'))
+            metadata_deep_path = include_metadata_keys.split(',')
+            # for k in include_metadata_keys.split(','):
+            #     metadata_deep_path.append(k.split('.'))
             self.metadata_deep_path = metadata_deep_path
         except Exception as e:
             logger.warning(e, exc_info=True)
@@ -78,7 +80,7 @@ class LogIngester:
             self.report_logs_in_chunks(payload[split_len:])
 
     def prepare_lm_log_event(self, event):
-        lm_log_event = {"message": json.dumps(event), "timestamp": event[const.OKTA_KEY_TIMESTAMP],
+        lm_log_event = {"message": dumps(event).decode(), "timestamp": event.published,
                         "_lm.logsource_type": "lm-logs-okta"}
 
         if self.service_name:
@@ -89,7 +91,8 @@ class LogIngester:
         if self.metadata_deep_path:
             for path in self.metadata_deep_path:
                 try:
-                    lm_log_event['.'.join(path)] = reduce(operator.getitem, path, event)
+                    lm_log_event[path] = r_getattr(event, path)
+                    # lm_log_event['.'.join(path)] = reduce(operator.getitem, path, event)
                 except Exception as e:
                     logger.warning("Failed to add metadata {0} to lm-log event. Error = {1}".format(path, str(e)))
 
@@ -107,6 +110,7 @@ class LogIngester:
                                               msg=request_vars.encode(const.ENCODING),
                                               digestmod=hashlib.sha256).hexdigest().encode(const.ENCODING))
         auth = 'LMv1 ' + self.lm_access_id + ':' + signature.decode() + ':' + epoch
+
         headers = {'Content-Encoding': 'gzip', 'Content-Type': 'application/json', 'Authorization': auth,
                    'User-Agent': 'Okta-log-lambda-function'}
         logger.debug("making post request.")

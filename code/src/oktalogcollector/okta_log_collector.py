@@ -9,6 +9,7 @@ from . import aws
 from . import constants as const
 from . import helper as hp
 from .log_ingester import LogIngester
+from . import msgspec_okta_event
 
 OKTA_LOGS_ENDPOINT = "/api/v1/logs"
 HTTP_PROTOCOL = "https://"
@@ -91,7 +92,8 @@ class OktaLogCollector:
         try:
             response = requests.request("GET", url_for_fetching, headers=headers)
             response.raise_for_status()
-            self.log_ingester.ingest_to_lm_logs(response.json())
+
+            self.log_ingester.ingest_to_lm_logs(msgspec_okta_event.loads(response.text))
             while response.links["next"]["url"]:
                 next_url = response.links["next"]["url"]
                 url_to_persist = next_url
@@ -103,11 +105,11 @@ class OktaLogCollector:
                 self.retry_attempt = 0
                 response = requests.request("GET", response.links["next"]["url"], headers=headers)
                 response.raise_for_status()
-                if len(response.json()) < 1:
+                if len(msgspec_okta_event.loads(response.text)) < 1:
                     logger.info("Reached last next link as no logs found this time. Stopping log collection.. ")
                     break
                 else:
-                    self.log_ingester.ingest_to_lm_logs(response.json())
+                    self.log_ingester.ingest_to_lm_logs(msgspec_okta_event.loads(response.text))
 
             logger.info("URL for fetching first : %s, url to persist at the ending : %s", url_for_fetching,
                         url_to_persist)
