@@ -8,4 +8,4 @@ RUN sam build -m requirements.txt -t template.yaml
 # execute tests
 RUN tox -v
 # validate sam template file
-RUN sam validate -t ../template.yaml --lint
+RUN sam validate -t template.yaml --lint
