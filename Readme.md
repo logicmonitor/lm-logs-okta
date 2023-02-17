@@ -2,7 +2,7 @@
 
 
 ## Deploy as CloudFormation stack
-[![Launch Stack](https://s3.amazonaws.com/cloudformation-examples/cloudformation-launch-stack.png)](https://console.aws.amazon.com/cloudformation/home#/stacks/create/review?stackName=lm-okta-log-collector&templateURL=https://okta-log-collector-src.s3.amazonaws.com/template-0.0.1.yaml)
+[![Launch Stack](https://s3.amazonaws.com/cloudformation-examples/cloudformation-launch-stack.png)](https://console.aws.amazon.com/cloudformation/home#/stacks/create/review?stackName=lm-okta-log-collector&templateURL=https://okta-log-collector-src.s3.amazonaws.com/staging/latest.yaml)
 
 
 ### Requirements
