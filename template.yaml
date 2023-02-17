@@ -110,7 +110,17 @@ Resources:
                     Properties:
                         Schedule: !Ref ScheduleExpression
                         Enabled: True
+    version:
+      Type: AWS::Lambda::Version
+      Properties:
+        FunctionName: !Ref oktaLogCollector
 
+    lambdaRetryConfig:
+      Type: AWS::Lambda::EventInvokeConfig
+      Properties:
+        FunctionName: !Ref oktaLogCollector
+        MaximumRetryAttempts: 0 # Back-filling will be performed in next lamda invocation in case of lambda timeouts
+        Qualifier: !GetAtt version.Version
 
     AccessKeySecret:
       Type: AWS::SecretsManager::Secret

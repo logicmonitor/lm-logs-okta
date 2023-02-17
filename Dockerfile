@@ -4,7 +4,7 @@ COPY ./template.yaml /
 WORKDIR /code
 
 RUN pip install --upgrade awscli aws-sam-cli tox setuptools
-RUN sam build -m requirements.txt -t ../template.yaml
+RUN sam build -m requirements.txt -t template.yaml
 # execute tests
 RUN tox -v
 # validate sam template file
