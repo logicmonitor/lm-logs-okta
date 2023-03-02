@@ -1,31 +1,11 @@
 # OKTA Log Collector for LM-Logs
 
+This integration provides an AWS cloudformation stack which includes a lambda function periodically collecting Okta system logs and forwarding it to Logicmonitor LM Logs.
 
 ## Deploy as CloudFormation stack
 [![Launch Stack](https://s3.amazonaws.com/cloudformation-examples/cloudformation-launch-stack.png)](https://console.aws.amazon.com/cloudformation/home#/stacks/create/review?stackName=lm-okta-log-collector&templateURL=https://okta-log-collector-src.s3.amazonaws.com/staging/cross-region.yaml)
 
 
-### Requirements
-
-* AWS CLI 
-* [SAM CLI](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-cli-install.html) >=0.7 installed
-* [Python 3 installed](https://www.python.org/downloads/)
-* [Docker installed](https://www.docker.com/community-edition) only for local development
-* [Virtualenvwrapper](https://virtualenvwrapper.readthedocs.io/en/latest/) or roll your own with [Python Virtual Environment](http://docs.python-guide.org/en/latest/dev/virtualenvs/)
-
-### Python 3.9
-
-## Deploying as AWS lambda function
-
-Build SAM locally
-```bash
-> sam build -m requirements.txt
-```
-
-Deploy SAM
-```bash
-> sam deploy --guided
-```
 
 ## Parameters
 | Parameter                  | Description                                                                                                                                                                                                                                 | Default                                                                                                            |
