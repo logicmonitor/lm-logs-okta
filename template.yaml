@@ -67,7 +67,6 @@ Resources:
     LRTBucket:
         Type: AWS::S3::Bucket
 
-
     oktaLogCollector :
         Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
         DependsOn: OktaLogCollectorZip
@@ -146,6 +145,7 @@ Resources:
       Properties:
         ServiceToken: !GetAtt "OktaLogCollectorZipCopier.Arn"
         DestZipsBucket: !Ref "OktaLogCollectorZipsBucket"
+        LRTBucket: !Ref "LRTBucket"
         SourceZipUrl:
           Fn::Sub:
             - "https://okta-log-collector-src.s3.amazonaws.com/0.0.1-beta/481fd5ef6fef427a22fa016aeb4b165c"
@@ -195,6 +195,10 @@ Resources:
               filename = "main.zip"
               with urllib.request.urlopen(source_zip_url) as data:
                   s3.upload_fileobj(data, dest_zips_bucket, filename)
+          def clear_lrt_bucket(bucket):
+              s3 = boto3.resource('s3')
+              bucket = s3.Bucket(bucket)
+              bucket.objects.all().delete()
           def timeout(event, context):
               logger.error('Execution is about to time out, sending failure response to CloudFormation')
               send_cfn_resp(event, context, 'FAILED')
@@ -206,9 +210,11 @@ Resources:
               try:
                   source_zip_url = event['ResourceProperties']['SourceZipUrl']
                   dest_zips_bucket = event['ResourceProperties']['DestZipsBucket']
+                  LRTBucket = event['ResourceProperties']['LRTBucket']
                   if event['RequestType'] == 'Delete':
                       logger.info(f'Deleting : {dest_zips_bucket}')
                       delete_zips(dest_zips_bucket)
+                      clear_lrt_bucket(LRTBucket)
                   else:
                       logger.info(f'Copying zip from : {source_zip_url} to {dest_zips_bucket}')
                       copy_zip(source_zip_url, dest_zips_bucket)
@@ -234,9 +240,18 @@ Resources:
                         - "*"
               - Effect: Allow
                 Action:
+                  - s3:DeleteObject
+                Resource:
+                  - Fn::Join:
+                      - "/"
+                      - - Fn::GetAtt: "LRTBucket.Arn"
+                        - "*"
+              - Effect: Allow
+                Action:
                   - s3:ListBucket
                 Resource:
                   - Fn::GetAtt: "OktaLogCollectorZipsBucket.Arn"
+                  - Fn::GetAtt: "LRTBucket.Arn"
         Environment:
           Variables:
             LM_OKTA_LOG_COLLECTOR_VERSION: !FindInMap [ Constants, LMOktaLogCollector, Version ]
