@@ -1,0 +1,19 @@
+# python
+*.tox/
+*.pytest_cache/
+*__pycache__/
+*.pyc
+*.egg-info/
+
+# sam
+*.aws-sam/
+
+# ide
+/.idea
+
+# importanat with creds
+/actualTemplate.yaml
+/out
+
+/tmp/*
+/venv/*
