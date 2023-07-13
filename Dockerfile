@@ -18,5 +18,5 @@ RUN zip -r lambda.zip lambda-pkg
 
 FROM debian as release 
 WORKDIR /code
-COPY --from=buildAndTest /code/lambda.zip /code/
+COPY --from=buildAndTest /code/lambda.zip /code/lambda-pkg/
 VOLUME /code
