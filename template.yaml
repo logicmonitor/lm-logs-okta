@@ -9,7 +9,7 @@ Globals:
 Mappings:
   Constants:
     LMOktaLogCollector:
-      Version: 0.0.1-beta
+      Version: 0.0.1
 Parameters:
   LMCompanyName:
     Type: String
@@ -148,7 +148,7 @@ Resources:
         LRTBucket: !Ref "LRTBucket"
         SourceZipUrl:
           Fn::Sub:
-            - "https://okta-log-collector-src.s3.amazonaws.com/0.0.1-beta/481fd5ef6fef427a22fa016aeb4b165c"
+            - "https://lm-logs-okta-collector.s3.amazonaws.com/stable/${LMOktaLogCollectorVersion}/lambda.zip"
             - {
               LMOktaLogCollectorVersion:
                 !FindInMap [ Constants, LMOktaLogCollector, Version ],
