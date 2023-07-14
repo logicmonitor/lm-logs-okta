@@ -6,7 +6,7 @@ RUN pip install --upgrade pip && pip install --upgrade awscli aws-sam-cli tox se
 
 FROM base as buildAndTest
 # execute unit tests
-RUN tox -v
+RUN tox -rv
 # # validate sam template file
 RUN sam validate -t template.yaml --lint
 # create lambda zip artifact
