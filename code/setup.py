@@ -1,15 +1,18 @@
 from setuptools import setup, find_packages
+import configparser
 
 NAME = "oktalogcollector"
-version = {}
-with open("src/oktalogcollector/version.py") as fp:
-    exec(fp.read(), version)
-
+config = configparser.ConfigParser()
+with open("src/oktalogcollector/version.properties") as fp:
+    config.read_string("[" + NAME + "]\n" + fp.read())
+    
 
 setup(
     name=NAME,
-    version=version["__version__"],
+    version=config[NAME].get('__version__'),
     packages=find_packages(),
+    package_data={'': ['version.properties']},
+    include_package_data=True,
     author="LogicMonitor",
     author_email="support@logicmonitor.com",
 )
