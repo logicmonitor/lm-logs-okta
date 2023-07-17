@@ -14,9 +14,10 @@ RUN apt update && apt install zip -y
 RUN mkdir -p lambda-pkg/oktalogcollector
 RUN pip install -r requirements.txt --target lambda-pkg
 RUN cp src/oktalogcollector/*.py lambda-pkg/oktalogcollector/
-RUN zip -r lambda.zip lambda-pkg
+WORKDIR /code/lambda-pkg
+RUN zip -r lambda.zip .
 
 FROM debian as release 
 WORKDIR /code
-COPY --from=buildAndTest /code/lambda.zip /code/lambda-pkg/
+COPY --from=buildAndTest /code/lambda-pkg/lambda.zip /code/lambda-pkg/
 VOLUME /code
