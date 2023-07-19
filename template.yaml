@@ -17,11 +17,18 @@ Parameters:
   LMAccessId:
     Type: String
     NoEcho: true
+    Default: ""
     Description: The LM API tokens access ID
   LMAccessKey:
     Type: String
     NoEcho: true
+    Default: ""
     Description: The LM API tokens access key
+  LMBearerToken:
+    Type: String
+    NoEcho: true
+    Default: ""
+    Description: The LM API Bearer token. (You must specify LMBearerToken if not providing LMAccessId, LMAccessKey. In case you provide all, LMAccessId and LMAccessKey will be used to authenticate with Logicmonitor.  )
   OktaDomain:
     Type: String
     AllowedPattern: ^(?!-)[A-Za-z0-9-]+([\-\.]{1}[a-z0-9]+)*\.[A-Za-z]{2,6}
@@ -62,6 +69,26 @@ Parameters:
     Description: Cron expression for this lambda function. "rate(2 minutes)" means, function will be triggered every 2 minutes. See https://docs.aws.amazon.com/AmazonCloudWatch/latest/events/ScheduledEvents.html for more details.
 
 
+
+Conditions:
+  AccessIdEmpty: !Equals [!Ref LMAccessId, ""]
+  AccessKeyEmpty: !Equals [!Ref LMAccessKey, ""]
+  MustUseBearerTokenForAuth: !Or
+    - !Condition AccessIdEmpty
+    - !Condition AccessKeyEmpty
+  UseLMV1ForAuth: !Not [!Condition MustUseBearerTokenForAuth]
+
+
+Rules:
+  NoAccessIdKeyProvided:
+    RuleCondition: !Or [!Equals [!Ref LMAccessId, ""], !Equals [!Ref LMAccessKey, ""]]
+    Assertions:
+      - AssertDescription: Please specify either LMAccessId, LMAccessKey both or LMBearerToken to authenticate with Logicmonitor.
+        Assert: !Not
+          - !Equals
+            - !Ref LMBearerToken
+            - ""
+
 Resources:
 
     LRTBucket:
@@ -89,9 +116,11 @@ Resources:
                         - secretsmanager:GetSecretValue
                         - secretsmanager:DescribeSecret
                       Resource:
-                        - Ref: AccessKeySecret
-                        - Ref: AccessIdSecret
                         - Ref: OktaAPIKeySecret
+                        - !If [UseLMV1ForAuth, !Ref AccessIdSecret, !Ref AWS::NoValue]
+                        - !If [UseLMV1ForAuth, !Ref AccessKeySecret, !Ref AWS::NoValue]
+                        - !If [MustUseBearerTokenForAuth, !Ref BearerTokenSecret, !Ref AWS::NoValue]
+
             Environment: # More info about Env Vars: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#environment-object
                 Variables:
                   # last report time persistence config
@@ -103,12 +132,13 @@ Resources:
 
                   # config for log-ingestion
                     COMPANY_NAME : !Ref LMCompanyName
-                    LM_ACCESS_ID : !Ref AccessIdSecret
-                    LM_ACCESS_KEY : !Ref AccessKeySecret
                     LM_KEY_SERVICE : !Ref LMLogsServiceName
                     LM_RESOURCE_ID : !Ref LMResourceId
                     INCLUDE_METADATA_KEYS : !Ref IncludeMetadataKeys
                     LM_SERVICE_NAME_KEY : !Ref LMLogsServiceName
+                    LM_ACCESS_ID : !If [UseLMV1ForAuth,!Ref AccessIdSecret, "" ]
+                    LM_ACCESS_KEY : !If [UseLMV1ForAuth,!Ref AccessKeySecret, "" ]
+                    LM_BEARER_TOKEN : !If [MustUseBearerTokenForAuth, !Ref BearerTokenSecret, ""]
 
             Events:
                 oktaLogCollectionScheduleEvent:
@@ -148,7 +178,7 @@ Resources:
         LRTBucket: !Ref "LRTBucket"
         SourceZipUrl:
           Fn::Sub:
-            - "https://lm-logs-okta-collector.s3.amazonaws.com/stable/${LMOktaLogCollectorVersion}/lambda.zip"
+            - "https://lm-logs-okta-collector.s3.amazonaws.com/stable/code/${LMOktaLogCollectorVersion}/lambda.zip"
             - {
               LMOktaLogCollectorVersion:
                 !FindInMap [ Constants, LMOktaLogCollector, Version ],
@@ -259,16 +289,25 @@ Resources:
 
     AccessKeySecret:
       Type: AWS::SecretsManager::Secret
+      Condition: UseLMV1ForAuth
       Properties:
         Description: Logic Monitor Access Key
         SecretString:
           Ref: LMAccessKey
     AccessIdSecret:
       Type: AWS::SecretsManager::Secret
+      Condition: UseLMV1ForAuth
       Properties:
         Description: Logic Monitor Access Id
         SecretString:
           Ref: LMAccessId
+    BearerTokenSecret:
+      Type: AWS::SecretsManager::Secret
+      Condition: MustUseBearerTokenForAuth
+      Properties:
+        Description: Logic Monitor Bearer Token
+        SecretString:
+          Ref: LMBearerToken
     OktaAPIKeySecret:
       Type: AWS::SecretsManager::Secret
       Properties:
@@ -282,11 +321,15 @@ Metadata:
           default: Required
         Parameters:
           - FunctionName
-          - LMCompanyName
-          - LMAccessId
-          - LMAccessKey
           - OktaDomain
           - OktaAPIKey
+          - LMCompanyName
+      - Label:
+          default: Authenticate with Logicmonitor
+        Parameters:  
+          - LMAccessId
+          - LMAccessKey
+          - LMBearerToken
       - Label:
           default: LM Logs (Optional)
         Parameters:
