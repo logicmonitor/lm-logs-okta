@@ -24,12 +24,17 @@ class LogIngester:
     def __init__(self):
         self.metadata_deep_path = None
         self.company = hp.get_required_attr_from_env(const.COMPANY_NAME)
-        self.lm_access_id = aws.get_secret_val(hp.get_required_attr_from_env(const.LM_ACCESS_ID))
-        self.lm_access_key = aws.get_secret_val(hp.get_required_attr_from_env(const.LM_ACCESS_KEY))
+        self.lm_access_id = aws.get_secret_val(hp.get_attr_from_env(const.LM_ACCESS_ID))
+        self.lm_access_key = aws.get_secret_val(hp.get_attr_from_env(const.LM_ACCESS_KEY))
+        self.lm_bearer_token = aws.get_secret_val(hp.get_attr_from_env(const.LM_BEARER_TOKEN))
         self.lm_resource_id = hp.get_attr_as_json_from_env(const.LM_RESOURCE_ID)
         self.set_metadata_deep_path()
         self.include_metadata_keys = hp.get_required_attr_from_env(const.INCLUDE_METADATA_KEYS)
         self.service_name = hp.get_attr_from_env(const.LM_SERVICE_NAME_KEY)
+        self.use_lmv1_for_auth = True if (self.lm_access_id and self.lm_access_key) else False
+
+        if not self.use_lmv1_for_auth and not self.lm_bearer_token:
+            raise ValueError("Either LMAccessId, LMAccessKey both or BearerToken should be configured for authentication with Logicmonitor.")
 
     def set_metadata_deep_path(self):
         try:
@@ -98,18 +103,24 @@ class LogIngester:
 
         return lm_log_event
 
+    def generate_auth(self, data):
+        if self.use_lmv1_for_auth:
+            http_verb = 'POST'
+            epoch = str(int(time.time() * 1000))
+            request_vars = http_verb + epoch + data + const.LOG_INGESTION_RESOURCE_PATH
+            signature = base64.b64encode(hmac.new(self.lm_access_key.encode(const.ENCODING),
+                                                msg=request_vars.encode(const.ENCODING),
+                                                digestmod=hashlib.sha256).hexdigest().encode(const.ENCODING))
+            return 'LMv1 ' + self.lm_access_id + ':' + signature.decode() + ':' + epoch
+        else:
+            return "Bearer " + self.lm_bearer_token
+
     def report_logs(self, payload):
-        resource_path = "/log/ingest"
-        http_verb = 'POST'
-        url = "https://" + self.company + ".logicmonitor.com/rest" + resource_path
         data = json.dumps(payload)
+        url = "https://" + self.company + ".logicmonitor.com/rest" + const.LOG_INGESTION_RESOURCE_PATH
         logging.debug("Payload to ingest =%s", data)
-        epoch = str(int(time.time() * 1000))
-        request_vars = http_verb + epoch + data + resource_path
-        signature = base64.b64encode(hmac.new(self.lm_access_key.encode(const.ENCODING),
-                                              msg=request_vars.encode(const.ENCODING),
-                                              digestmod=hashlib.sha256).hexdigest().encode(const.ENCODING))
-        auth = 'LMv1 ' + self.lm_access_id + ':' + signature.decode() + ':' + epoch
+
+        auth = self.generate_auth(data)
 
         headers = {'Content-Encoding': 'gzip', 'Content-Type': 'application/json', 'Authorization': auth,
                    'User-Agent': 'Okta-log-lambda-function'}
