@@ -1,7 +1,6 @@
 import boto3
 import botocore
 import botocore.session
-import validators
 from aws_secretsmanager_caching import SecretCache, SecretCacheConfig
 from . import constants as const
 from . import helper as hp
@@ -18,7 +17,10 @@ BUCKET = hp.get_required_attr_from_env(const.BUCKET)
 
 
 def get_secret_val(key):
-    return secret_cache.get_secret_string(key)
+    if len(key) > 0:
+        return secret_cache.get_secret_string(key)
+    else : 
+        return None
 
 
 def update_s3_obj(obj_key, body):

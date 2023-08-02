@@ -15,4 +15,4 @@ packaging
 pyparsing
 wheel
 msgspec
-
+configparser
