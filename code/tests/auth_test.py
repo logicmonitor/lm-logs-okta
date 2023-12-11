@@ -18,14 +18,14 @@ def test_no_auth_specified(mocker):
 
         mocker.patch("oktalogcollector.aws.get_secret_val", return_value=None)
         log_ingester = li.LogIngester()
-        
+
 
 def test_partial_lmv1_specified_with_no_bearer(partial_lmv1_defined_with_no_bearer):
     with pytest.raises(ValueError):
         with mock.patch("oktalogcollector.aws.get_secret_val") as mck:
             mck.side_effect = partial_lmv1_defined_with_no_bearer
             log_ingester = li.LogIngester()
-            
+
 
 
 def test_only_lmv1_specified_with_no_bearer(mocker,get_secret_val_only_LMV1_defined, mock_log_ingest_post):
@@ -79,10 +79,10 @@ def fixture_mock_partial_lmv1_defined_with_no_bearer():
             "token" : None
         }
         return returns[key]
-    
+
 
     return _get_secret_val1
-    
+
 @pytest.fixture(name="get_secret_val_only_LMV1_defined", scope="session")
 def fixture_mock_only_LMV1_defined():
     def _get_secret_val2(key):
@@ -92,7 +92,7 @@ def fixture_mock_only_LMV1_defined():
             "token" : None
         }
         return returns[key]
-    
+
 
     return _get_secret_val2
 
@@ -105,7 +105,7 @@ def fixture_mock_all_auth_defined():
             "token" : "some-string"
         }
         return returns[key]
-    
+
 
     return _get_secret_val3
 
@@ -118,7 +118,7 @@ def fixture_mock_only_bearer_defined():
             "token" : "some-string"
         }
         return returns[key]
-    
+
 
     return _get_secret_val3
 
@@ -131,7 +131,7 @@ def fixture_mock_partial_lmv1_with_bearer_specified():
             "token" : "some-string"
         }
         return returns[key]
-    
+
 
     return _get_secret_val3
 
@@ -140,17 +140,18 @@ def mock_log_ingest_post(
         requests_mock
 ):
     def matcher(req):
+        print (req.headers.get("Authorization"))
         if req.url != "https://mycompany.logicmonitor.com/rest/log/ingest":
             return None
         if json.load(open("tests/data/expected_lm_logs_payload_data.json")) == \
                 json.loads(gzip.decompress(req.body).decode('utf-8')) \
                 and (req.headers.get("Authorization") == \
-                "LMv1 some-string:ZjU3NDkyZmZmZTQzOTgzMzVmOWZjMzNiOTQ4O" \
-                "GI0YWQ1YzdiZTIwNGMyOGE5NTQ0ZjZjZDUwYzY1NzE0N2RmZQ==:123456789000" or req.headers.get("Authorization") == "Bearer some-string"):
+                "LMv1 some-string:MTA3NzU0MTAzYjliMmNkNDc2YTU0NDEwMjNmOWM0OWQyY2Zl" \
+                    "OGNiOWVhZTY4ZjczYjkxMjU1MjU2YTZiZGNhZA==:123456789000" or req.headers.get("Authorization") == "Bearer some-string"):
             return create_successful_ingestion_response()
     requests_mock._adapter.add_matcher(matcher)
     yield
-    
+
 def create_successful_ingestion_response():
     resp = requests.Response()
     resp.status_code = 202
