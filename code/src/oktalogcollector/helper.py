@@ -25,3 +25,7 @@ def get_attr_as_json_from_env(key):
     except Exception as e:
         logger.warning("Can not parse json defined as env variable {0}, error = {1}".format(key, str(e)))
         return None
+
+
+def isNotBlank (str):
+    return bool(str and str.strip())

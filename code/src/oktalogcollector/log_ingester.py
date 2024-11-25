@@ -21,6 +21,7 @@ logger.setLevel(logging.INFO)
 
 class LogIngester:
 
+    TENANT_ID = hp.get_attr_from_env(const.LM_TENANT_ID)
     def __init__(self):
         self.metadata_deep_path = None
         self.company = hp.get_required_attr_from_env(const.COMPANY_NAME)
@@ -92,6 +93,11 @@ class LogIngester:
             lm_log_event[const.LM_KEY_SERVICE] = self.service_name
         if self.lm_resource_id:
             lm_log_event["_lm.resourceId"] = self.lm_resource_id
+
+        if hp.isNotBlank(self.TENANT_ID):
+            lm_log_event[const.LM_TENANT_ID_KEY] = self.TENANT_ID
+
+        lm_log_event["log_level"] = event.severity
 
         if self.metadata_deep_path:
             for path in self.metadata_deep_path:
