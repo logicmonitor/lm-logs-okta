@@ -9,7 +9,7 @@ Globals:
 Mappings:
   Constants:
     LMOktaLogCollector:
-      Version: 0.0.1
+      Version: 0.1.1
 Parameters:
   LMCompanyName:
     Type: String
@@ -50,7 +50,7 @@ Parameters:
     Description: The name for lambda function.
   IncludeMetadataKeys:
     Type: String
-    Default: 'severity,actor.displayName,actor.type,actor.alternateId,client.geographicalContext.city,displayMessage,eventType,target'
+    Default: 'actor.displayName,actor.type,actor.alternateId,client.geographicalContext.city,displayMessage,eventType,target'
     Description: comma separated keys to add as event metadata in a lm-log event. for nested json specify '.' eg - actor.displayname,actor.type
   FunctionMemorySize:
     Type: Number
@@ -68,6 +68,10 @@ Parameters:
     Default: "rate(2 minutes)"
     Description: Cron expression for this lambda function. "rate(2 minutes)" means, function will be triggered every 2 minutes. See https://docs.aws.amazon.com/AmazonCloudWatch/latest/events/ScheduledEvents.html for more details.
 
+  LMTenantId:
+    Type: String
+    Default: ""
+    Description: LogicMonitor Tenant Identifier to be sent as event metadata with logs to LogicMonitor.
 
 
 Conditions:
@@ -139,6 +143,7 @@ Resources:
                     LM_ACCESS_ID : !If [UseLMV1ForAuth,!Ref AccessIdSecret, "" ]
                     LM_ACCESS_KEY : !If [UseLMV1ForAuth,!Ref AccessKeySecret, "" ]
                     LM_BEARER_TOKEN : !If [MustUseBearerTokenForAuth, !Ref BearerTokenSecret, ""]
+                    LM_TENANT_ID : !Ref LMTenantId
 
             Events:
                 oktaLogCollectionScheduleEvent:
@@ -165,11 +170,6 @@ Resources:
           ServerSideEncryptionConfiguration:
             - ServerSideEncryptionByDefault:
                 SSEAlgorithm: AES256
-        PublicAccessBlockConfiguration:
-          BlockPublicAcls: true
-          BlockPublicPolicy: true
-          IgnorePublicAcls: true
-          RestrictPublicBuckets: true
     OktaLogCollectorZip:
       Type: Custom::OktaLogCollectorZip
       Properties:
@@ -326,7 +326,7 @@ Metadata:
           - LMCompanyName
       - Label:
           default: Authenticate with Logicmonitor
-        Parameters:  
+        Parameters:
           - LMAccessId
           - LMAccessKey
           - LMBearerToken
@@ -336,6 +336,7 @@ Metadata:
           - LMLogsServiceName
           - LMResourceId
           - IncludeMetadataKeys
+          - LMTenantId
       - Label:
           default: Lambda Function (Optional)
         Parameters:
