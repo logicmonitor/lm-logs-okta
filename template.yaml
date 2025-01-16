@@ -14,6 +14,14 @@ Parameters:
   LMCompanyName:
     Type: String
     Description: The LogicMonitor account name. If your domain is mycompany.logicmonitor.com, then it is mycompany
+  LMDomainName:
+    Type: String
+    Description: Domain of LogicMonitor platform where logs are to be sent. For mycompany.logicmonitor.com, it is logicmonitor.com
+    AllowedValues:
+      - logicmonitor.com
+      - qa-lmgov.us
+      - lmgov.us
+    Default: logicmonitor.com
   LMAccessId:
     Type: String
     NoEcho: true
@@ -136,6 +144,7 @@ Resources:
 
                   # config for log-ingestion
                     COMPANY_NAME : !Ref LMCompanyName
+                    DOMAIN_NAME : !Ref LMDomainName
                     LM_KEY_SERVICE : !Ref LMLogsServiceName
                     LM_RESOURCE_ID : !Ref LMResourceId
                     INCLUDE_METADATA_KEYS : !Ref IncludeMetadataKeys
@@ -324,6 +333,7 @@ Metadata:
           - OktaDomain
           - OktaAPIKey
           - LMCompanyName
+          - LMDomainName
       - Label:
           default: Authenticate with Logicmonitor
         Parameters:

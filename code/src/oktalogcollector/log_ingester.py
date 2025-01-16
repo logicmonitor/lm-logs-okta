@@ -25,6 +25,7 @@ class LogIngester:
     def __init__(self):
         self.metadata_deep_path = None
         self.company = hp.get_required_attr_from_env(const.COMPANY_NAME)
+        self.domain_name = hp.get_required_attr_from_env(const.DOMAIN_NAME)
         self.lm_access_id = aws.get_secret_val(hp.get_attr_from_env(const.LM_ACCESS_ID))
         self.lm_access_key = aws.get_secret_val(hp.get_attr_from_env(const.LM_ACCESS_KEY))
         self.lm_bearer_token = aws.get_secret_val(hp.get_attr_from_env(const.LM_BEARER_TOKEN))
@@ -33,6 +34,9 @@ class LogIngester:
         self.include_metadata_keys = hp.get_required_attr_from_env(const.INCLUDE_METADATA_KEYS)
         self.service_name = hp.get_attr_from_env(const.LM_SERVICE_NAME_KEY)
         self.use_lmv1_for_auth = True if (self.lm_access_id and self.lm_access_key) else False
+
+        logger.info("LogIngestor initialized for company %s ", self.company)
+        logger.info("LogIngestor initialized for domain %s ", self.domain_name)
 
         if not self.use_lmv1_for_auth and not self.lm_bearer_token:
             raise ValueError("Either LMAccessId, LMAccessKey both or BearerToken should be configured for authentication with Logicmonitor.")
@@ -51,6 +55,9 @@ class LogIngester:
 
     def get_company_name(self):
         return self.company
+    
+    def get_domain_name(self):
+        return self.domain_name
 
     def ingest_to_lm_logs(self, raw_json_resp):
         if len(raw_json_resp) < 1:
@@ -87,7 +94,7 @@ class LogIngester:
 
     def prepare_lm_log_event(self, event):
         lm_log_event = {"message": dumps(event).decode(), "timestamp": event.published,
-                        "_lm.logsource_type": "lm-logs-okta"}
+                        "_lm.logsource_type": "lm-logs-okta","source" : "prakalp-local"}
 
         if self.service_name:
             lm_log_event[const.LM_KEY_SERVICE] = self.service_name
@@ -123,9 +130,9 @@ class LogIngester:
 
     def report_logs(self, payload):
         data = json.dumps(payload)
-        url = "https://" + self.company + ".logicmonitor.com/rest" + const.LOG_INGESTION_RESOURCE_PATH
+        url = "https://" + self.company + "." + self.domain_name + "/rest" + const.LOG_INGESTION_RESOURCE_PATH
         logging.debug("Payload to ingest =%s", data)
-
+        logging.info("URL " + url)
         auth = self.generate_auth(data)
 
         headers = {'Content-Encoding': 'gzip', 'Content-Type': 'application/json', 'Authorization': auth,
