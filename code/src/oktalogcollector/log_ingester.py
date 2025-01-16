@@ -94,7 +94,7 @@ class LogIngester:
 
     def prepare_lm_log_event(self, event):
         lm_log_event = {"message": dumps(event).decode(), "timestamp": event.published,
-                        "_lm.logsource_type": "lm-logs-okta","source" : "prakalp-local"}
+                        "_lm.logsource_type": "lm-logs-okta"}
 
         if self.service_name:
             lm_log_event[const.LM_KEY_SERVICE] = self.service_name
