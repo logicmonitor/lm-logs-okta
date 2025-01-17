@@ -35,8 +35,7 @@ class LogIngester:
         self.service_name = hp.get_attr_from_env(const.LM_SERVICE_NAME_KEY)
         self.use_lmv1_for_auth = True if (self.lm_access_id and self.lm_access_key) else False
 
-        logger.info("LogIngestor initialized for company %s ", self.company)
-        logger.info("LogIngestor initialized for domain %s ", self.domain_name)
+        logger.debug("LogIngestor initialized for company %s domain %s", self.company,self.domain_name)
 
         if not self.use_lmv1_for_auth and not self.lm_bearer_token:
             raise ValueError("Either LMAccessId, LMAccessKey both or BearerToken should be configured for authentication with Logicmonitor.")
@@ -132,7 +131,6 @@ class LogIngester:
         data = json.dumps(payload)
         url = "https://" + self.company + "." + self.domain_name + "/rest" + const.LOG_INGESTION_RESOURCE_PATH
         logging.debug("Payload to ingest =%s", data)
-        logging.info("URL " + url)
         auth = self.generate_auth(data)
 
         headers = {'Content-Encoding': 'gzip', 'Content-Type': 'application/json', 'Authorization': auth,
