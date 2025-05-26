@@ -1,4 +1,4 @@
-# OKTA Log Collector for LM-Logs
+# Okta Log Collection for LM-Logs
 
 This integration provides an AWS cloudformation stack which includes a lambda function periodically collecting Okta system logs and forwarding it to Logicmonitor LM Logs.
 
