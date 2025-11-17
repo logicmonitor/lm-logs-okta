@@ -35,7 +35,7 @@ Parameters:
   LMBearerToken:
     Type: String
     NoEcho: true
-    Default: ""
+    MinLength: 0
     Description: The LM API Bearer token. (You must specify LMBearerToken if not providing LMAccessId, LMAccessKey. In case you provide all, LMAccessId and LMAccessKey will be used to authenticate with Logicmonitor.  )
   OktaDomain:
     Type: String
