@@ -37,13 +37,3 @@ def mock_okta_log_collector_success():
             "details": "Successfully executed the function"
         }
         yield mock_run
-
-
-# def test_lambda_handler_failure(mock_okta_log_collector_failure):
-#   mock_event = {"test": "event"}
-#   mock_context = MockContext()
-#
-#   result = lambda_handler(mock_event, mock_context)
-#
-#   assert result["status"] == "FAILED"
-#   assert "Unable to locate credentials" in result["error"]
