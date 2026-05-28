@@ -8,7 +8,7 @@ FROM base as buildAndTest
 # execute unit tests
 RUN tox -rv
 # # validate sam template file
-RUN sam validate -t template.yaml
+RUN sam validate -t template.yaml --lint
 # create lambda zip artifact
 RUN apt update && apt install zip -y
 RUN mkdir -p lambda-pkg/oktalogcollector
