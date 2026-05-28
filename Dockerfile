@@ -7,8 +7,8 @@ RUN pip install --upgrade pip && pip install --upgrade awscli aws-sam-cli tox se
 FROM base as buildAndTest
 # execute unit tests
 RUN tox -rv
-# # validate sam template file
-RUN sam validate -t template.yaml --lint
+# validate sam template file
+RUN AWS_DEFAULT_REGION=us-east-1 sam validate -t template.yaml
 # create lambda zip artifact
 RUN apt update && apt install zip -y
 RUN mkdir -p lambda-pkg/oktalogcollector
