@@ -101,6 +101,25 @@ Rules:
             - !Ref LMBearerToken
             - ""
 
+Conditions:
+  AccessIdEmpty: !Equals [!Ref LMAccessId, ""]
+  AccessKeyEmpty: !Equals [!Ref LMAccessKey, ""]
+  MustUseBearerTokenForAuth: !Or
+    - !Condition AccessIdEmpty
+    - !Condition AccessKeyEmpty
+  UseLMV1ForAuth: !Not [!Condition MustUseBearerTokenForAuth]
+
+
+Rules:
+  NoAccessIdKeyProvided:
+    RuleCondition: !Or [!Equals [!Ref LMAccessId, ""], !Equals [!Ref LMAccessKey, ""]]
+    Assertions:
+      - AssertDescription: Please specify either LMAccessId, LMAccessKey both or LMBearerToken to authenticate with Logicmonitor.
+        Assert: !Not
+          - !Equals
+            - !Ref LMBearerToken
+            - ""
+
 Resources:
 
     LRTBucket:
