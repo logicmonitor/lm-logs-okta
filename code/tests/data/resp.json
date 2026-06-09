@@ -1,7 +1,7 @@
 [
   {
         "actor": {
-            "id": "[dummy_id]",
+            "id": "00uudcaozhtNBQj3r1d6",
             "type": "User",
             "alternateId": "email",
             "displayName": "abcd",
@@ -172,7 +172,7 @@
                 "responseMode": "query",
                 "requestUri": "/oauth2/v1/authorize",
                 "requestedScopes": "openid, profile, email, okta.users.read.self, okta.users.manage.self, okta.internal.enduser.read, okta.internal.enduser.manage",
-                "userId": "[dummy_id]",
+                "userId": "00uudcaozhtNBQj3r1d6",
                 "url": "/oauth2",
                 "responseType": "code",
                 "authnRequestId": "Y5itVAyORl3CXeRFiZ0XoAAABwE",
@@ -212,7 +212,7 @@
         },
         "target": [
             {
-                "id": "[dummy_id]",
+                "id": "00uudcaozhtNBQj3r1d6",
                 "type": "User",
                 "alternateId": null,
                 "displayName": null,
@@ -326,7 +326,7 @@
         },
         "target": [
             {
-                "id": "[dummy_id]",
+                "id": "00uudcaozhtNBQj3r1d6",
                 "type": "User",
                 "alternateId": null,
                 "displayName": null,
@@ -340,7 +340,7 @@
                 "detailEntry": {
                     "audience": "okta.2b1959c8-bcc0-56eb-a589-cfcfb7422f26",
                     "expires": "2022-12-14T21:27:29.000Z",
-                    "subject": "[dummy_id]",
+                    "subject": "00uudcaozhtNBQj3r1d6",
                     "hash": "hXFszMXh1d9s81obxQfLxw"
                 }
             }
@@ -348,7 +348,7 @@
     },
     {
         "actor": {
-            "id": "[dummy_id]",
+            "id": "00uudcaozhtNBQj3r1d6",
             "type": "User",
             "alternateId": "abcd",
             "displayName": "abcd",
@@ -557,7 +557,7 @@
         },
         "target": [
             {
-                "id": "[dummy_id]",
+                "id": "00uudcaozhtNBQj3r1d6",
                 "type": "User",
                 "alternateId": null,
                 "displayName": null,
@@ -570,7 +570,7 @@
                 "displayName": "Access Token",
                 "detailEntry": {
                     "expires": "2022-12-14T21:27:29.000Z",
-                    "subject": "[dummy_id]",
+                    "subject": "00uudcaozhtNBQj3r1d6",
                     "hash": "fyCvjOaNbRtg6KwD5a4pnA"
                 }
             }
