@@ -1,4 +1,4 @@
-FROM python:3.9 as base
+FROM python:3.11 as base
 COPY ./code/ /code/
 COPY ./template.yaml /code/
 WORKDIR /code
