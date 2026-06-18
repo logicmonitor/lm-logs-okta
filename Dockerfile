@@ -1,4 +1,4 @@
-FROM python:3.9 as base
+FROM python:3.11 as base
 COPY ./certs/cloudflare-gateway-ca.crt /usr/local/share/ca-certificates/cloudflare-gateway-ca.crt
 RUN update-ca-certificates
 ENV SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt \
