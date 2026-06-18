@@ -1,9 +1,4 @@
 FROM python:3.11 as base
-COPY ./certs/cloudflare-gateway-ca.crt /usr/local/share/ca-certificates/cloudflare-gateway-ca.crt
-RUN update-ca-certificates
-ENV SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt \
-    REQUESTS_CA_BUNDLE=/etc/ssl/certs/ca-certificates.crt \
-    PIP_CERT=/etc/ssl/certs/ca-certificates.crt
 COPY ./code/ /code/
 COPY ./template.yaml /code/
 WORKDIR /code
